@@ -142,8 +142,6 @@ class Bot:
                             move.extend(extra)
 
                             yield move
-        else:
-
 
     def valid_location(self, y, x, board):
         return 0 <= x < 10 and 0 <= y < 10 and board.world[y][x] is None
