@@ -202,6 +202,8 @@ class Board:
     
     # Return a state of a board after making a single move from one position to another (i. e., a single capture or a single step)
     def make_single_move(self, old, new, must_capture=False, first_move=True):
+        #print(self.__str__())
+
         new_board = self.copy()
         piece = new_board.world[old.y][old.x]
         yi = np.sign(new.y - old.y)
@@ -233,7 +235,7 @@ class Board:
                 
             else:
                 if abs(new.y - old.y) != abs(new.x - old.x):
-                    raise ValueError("You cannot move there - too far", self, moves)
+                    raise ValueError("You cannot move there - too far", self, [old.__str__(), new.__str__()])
                 
                 # Check if there is a black piece which was captured
                 where = old.add(yi, xi)
@@ -316,3 +318,18 @@ class Board:
 
         out = Image.fromarray(arr)
         display(out)
+
+    def __str__(self):
+        print("########")
+        for y in range(0, 9):
+            for x in range(0, 9):
+                p = self.world[y][x]
+
+                if p is None:
+                    print("  ", end="")
+                else:
+                    print("w" if p.white else "b", end="")
+                    print("k" if p.king else "m", end="")
+                print(" ", end="")
+            print()
+        print("########")
