@@ -14,7 +14,7 @@ class Bot:
         for depth in range(1, 100):
             best_move = self.get_best_move(board, depth)
 
-            if time.time() >= start_time + 0.2:
+            if time.time() >= start_time + 2:
                 break
 
         return best_move
