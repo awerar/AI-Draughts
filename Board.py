@@ -263,6 +263,7 @@ class Board:
         else:
             if not piece.king:
                 if new.y - old.y != 1 or abs(new.x - old.x) != 1:
+                    print(self.__str__())
                     raise ValueError("The position is inaccessible for this piece", self, moves_log)
             else:
                 if abs(new.y - old.y) != abs(new.x - old.x):
@@ -321,8 +322,8 @@ class Board:
 
     def __str__(self):
         print("########")
-        for y in range(0, 9):
-            for x in range(0, 9):
+        for y in range(0, 10):
+            for x in range(0, 10):
                 p = self.world[y][x]
 
                 if p is None:

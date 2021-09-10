@@ -15,8 +15,7 @@ class Bot:
         for depth in range(1, 100):
             best_move = self.get_best_move(board, depth)
 
-            print(depth)
-            if time.time() >= start_time + 0.2:
+            if time.time() >= start_time + 0.1:
                 break
 
         return best_move
@@ -40,7 +39,18 @@ class Bot:
             return self.get_board_score(board)
 
         moves = self.get_possible_moves(board)
-        new_boards = [board.make_move(move) for move in moves]
+
+        new_boards = []
+        for move in moves:
+            print(board.__str__())
+
+            for p in move:
+                print(p.__str__(), end=" ")
+            print()
+            new_board = board.make_move(move)
+            print(new_board.revert().__str__())
+            new_boards.append(new_board)
+
         new_boards = sorted(new_boards, key=lambda b: -self.get_board_score(b))
 
         best_score = inf if not my_turn else -inf
@@ -79,69 +89,86 @@ class Bot:
     def get_possible_moves(self, board: Board):
         moves = []
 
-        if not board.capture_possible():
-            for piece in board.whites:
-                possible_positions = list(self.get_possible_next_positions(piece, board))
-                possible_positions = [p[0] for p in possible_positions]
-                possible_positions = [pos for pos in possible_positions if
-                                      board.on_board(pos) and board.world[pos.y][pos.x] is None]
-                new_moves = [[piece.position(), pos] for pos in possible_positions]
-                if len(new_moves) > 0:
-                    moves.extend(new_moves)
-        else:
-            for piece in board.whites:
-                moves.extend(list(self.get_capture_moves(piece, board)))
+        for piece in board.whites:
+            man_func = self.get_moves_man if not board.capture_possible() else self.get_captures_man
+            king_func = self.get_moves_king if not board.capture_possible() else self.get_captures_king
+            move_func = king_func if piece.king else man_func
+
+            moves.extend(move_func(piece.position(), board))
 
         return moves
 
-    # Returns a list of pairs: [pos, capture_pos]
-    # Probably not valid though
-    def get_possible_next_positions(self, piece: Piece, board: Board, first_move=True, bad_xd=0, bad_yd=0):
-        if not piece.king:
+    def get_moves_king(self, pos: Position, board: Board):
+        for xd in [-1, 1]:
             for yd in [-1, 1]:
-                if yd == -1 and first_move:
+                for i in range(1, 10):
+                    new_pos = pos.add(yd * i, xd * i)
+                    if board.on_board(new_pos) and board.isEmpty(new_pos):
+                        yield [pos, new_pos]
+                    else:
+                        break
+
+    def get_moves_man(self, pos: Position, board: Board):
+        for xd in [-1, 1]:
+            new_pos = pos.add(1, xd)
+            if board.on_board(new_pos) and board.isEmpty(new_pos):
+                yield [pos, new_pos]
+
+    def get_captures_king(self, pos: Position, board: Board):
+        for xd in [-1, 1]:
+            for yd in [-1, 1]:
+                for i in range(1, 10):
+                    new_pos = pos.add(yd * i, xd * i)
+
+                    if not board.on_board(new_pos):
+                        break
+
+                    if board.isBlack(new_pos):
+                        after_kill_pos = new_pos.add(yd, xd)
+                        if board.on_board(after_kill_pos) and board.isEmpty(after_kill_pos):
+                            yield [pos, after_kill_pos]
+
+                            for k in range(1, 10):
+                                slide_pos = after_kill_pos.add(yd * k, xd * k)
+                                if not board.on_board(slide_pos) or not board.isEmpty(slide_pos):
+                                    break
+
+                                yield [pos, slide_pos]
+
+                            for dd in [-1, 1]:
+                                for k in range(1, 10):
+                                    dash_pos = after_kill_pos.add(-yd * k * dd, xd * k * dd)
+
+                                    if not board.on_board(dash_pos) or not board.isEmpty(dash_pos):
+                                        break
+
+                                    yield [pos, after_kill_pos, dash_pos]
+
+                    if not board.isEmpty(new_pos):
+                        break
+
+    def get_captures_man(self, pos: Position, board: Board, first=True):
+        for yd in [-1, 1]:
+            if yd == -1 and first:
+                continue
+
+            for xd in [-1, 1]:
+                kill_pos = pos.add(yd, xd)
+
+                if not board.on_board(kill_pos) or not board.isBlack(kill_pos):
                     continue
 
-                for xd in [-1, 1]:
-                    yield [Position(piece.y + 1, piece.x + xd), Position(piece.y + 2, piece.x + xd * 2)]
-        else:
-            for xd in [-1, 1]:
-                for yd in [-1, 1]:
-                    if bad_yd == yd and bad_xd == xd:
-                        continue
+                after_kill_pos = kill_pos.add(yd, xd)
 
-                    for i in range(1, 9):
-                        pos = Position(piece.y + i * yd, piece.x + i * xd)
-                        capture_pos = []
-                        if not board.isEmpty(pos):
-                            for j in range(i + 1, 9):
-                                cap_pos = Position(piece.y + j * yd, piece.x + j * xd)
-                                if not board.on_board(cap_pos) or not board.isEmpty(cap_pos):
-                                    break
-                                capture_pos.append(cap_pos)
+                if not board.on_board(after_kill_pos) or not board.isEmpty(after_kill_pos):
+                    continue
 
-                        if len(capture_pos) > 0:
-                            yield [pos, capture_pos]
+                yield [pos, after_kill_pos]
+                new_board = board.make_single_move(pos, after_kill_pos, True, first)
+                tails = self.get_captures_man(after_kill_pos, new_board, False)
 
-                        if not board.on_board(pos) or not board.isEmpty(pos):
-                            break
+                for tail in tails:
+                    move = [pos]
+                    move.extend(tail)
 
-    def get_capture_moves(self, piece: Piece, board: Board, first_capture=True):
-        if not piece.king:
-            for pos_pair in self.get_possible_next_positions(piece, board, first_capture):
-                if board.on_board(pos_pair[0]) and board.on_board(pos_pair[1]):
-                    if board.isBlack(pos_pair[0]) and board.isEmpty(pos_pair[1]):
-                        yield [piece.position(), pos_pair[1]]
-
-                        new_board = board.make_single_move(piece.position(), pos_pair[1], True, first_capture)
-                        new_piece = new_board.world[pos_pair[1].y][pos_pair[1].x]
-                        additional = self.get_capture_moves(new_piece, new_board, False)
-
-                        for extra in additional:
-                            move = [piece.position()]
-                            move.extend(extra)
-
-                            yield move
-
-    def valid_location(self, y, x, board):
-        return 0 <= x < 10 and 0 <= y < 10 and board.world[y][x] is None
+                    yield move
