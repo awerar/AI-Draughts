@@ -6,7 +6,6 @@ from Piece import Piece
 from Position import Position
 from Board import Board
 
-
 class Bot:
     def make_move(self, board: Board) -> List[type(Position)]:
         start_time = time.time()
@@ -15,7 +14,7 @@ class Bot:
         for depth in range(1, 100):
             best_move = self.get_best_move(board, depth)
 
-            if time.time() >= start_time + 0.1:
+            if time.time() >= start_time + 0.2:
                 break
 
         return best_move
@@ -75,15 +74,23 @@ class Bot:
     def get_board_score(self, board: Board):
         if board.white_lost():
             return -inf
-        return self.get_white_score(board) - self.get_white_score(board.revert())
 
-    def get_white_score(self, board: Board):
         score = 0.0
-        for piece in board.whites:
-            if not piece.king:
-                score += (piece.position().y / 9.0) * 0.2
-            score += 3 if piece.king else 1
+        score += len(board.whites) * 2
+        score -= len(board.blacks) * 2
 
+        for p in board.blacks:
+            if p.king:
+                score -= 5
+
+        for p in board.whites:
+            if p.king:
+                score += 6
+            else:
+                for xd in [-1, 1]:
+                    cap_pos = p.position().add(-1, xd)
+                    if not board.on_board(cap_pos) or not board.isEmpty(cap_pos):
+                        score += 0.75
         return score
 
     def get_possible_moves(self, board: Board):
