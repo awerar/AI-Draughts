@@ -42,13 +42,13 @@ class Bot:
 
         new_boards = []
         for move in moves:
-            print(board.__str__())
+            #print(board.__str__())
 
-            for p in move:
-                print(p.__str__(), end=" ")
-            print()
+            #for p in move:
+            #    print(p.__str__(), end=" ")
+            #print()
             new_board = board.make_move(move)
-            print(new_board.revert().__str__())
+            #print(new_board.revert().__str__())
             new_boards.append(new_board)
 
         new_boards = sorted(new_boards, key=lambda b: -self.get_board_score(b))
@@ -114,9 +114,12 @@ class Bot:
             if board.on_board(new_pos) and board.isEmpty(new_pos):
                 yield [pos, new_pos]
 
-    def get_captures_king(self, pos: Position, board: Board):
+    def get_captures_king(self, pos: Position, board: Board, banned_dx=0, banned_dy=0, first=True):
         for xd in [-1, 1]:
             for yd in [-1, 1]:
+                if (xd == banned_dx and yd == banned_dy) or (-xd == banned_dx and -yd == banned_dy):
+                    continue
+
                 for i in range(1, 10):
                     new_pos = pos.add(yd * i, xd * i)
 
@@ -135,14 +138,12 @@ class Bot:
 
                                 yield [pos, slide_pos]
 
-                            for dd in [-1, 1]:
-                                for k in range(1, 10):
-                                    dash_pos = after_kill_pos.add(-yd * k * dd, xd * k * dd)
-
-                                    if not board.on_board(dash_pos) or not board.isEmpty(dash_pos):
-                                        break
-
-                                    yield [pos, after_kill_pos, dash_pos]
+                            new_board = board.make_single_move(pos, after_kill_pos, True, first)
+                            tails = self.get_captures_king(after_kill_pos, new_board, xd, yd, False)
+                            for tail in tails:
+                                move = [pos]
+                                move.extend(tail)
+                                yield move
 
                     if not board.isEmpty(new_pos):
                         break

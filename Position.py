@@ -13,4 +13,4 @@ class Position:
         return Position(int((self.y+other.y)/2), int((self.x+other.x)/2))
 
     def __str__(self):
-        return str(self.x) + " : " + str(self.y)
+        return str(self.y) + " : " + str(self.x)
