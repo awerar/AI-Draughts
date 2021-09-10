@@ -6,7 +6,7 @@ from Piece import Piece
 from Position import Position
 from Board import Board
 
-class Bot:
+class BestBot:
     def make_move(self, board: Board) -> List[type(Position)]:
         start_time = time.time()
         best_move = []
@@ -14,7 +14,7 @@ class Bot:
         for depth in range(1, 100):
             best_move = self.get_best_move(board, depth)
 
-            if time.time() >= start_time + 2:
+            if time.time() >= start_time + 1:
                 break
 
         return best_move
